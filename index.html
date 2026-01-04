@@ -328,7 +328,7 @@
             FLOOR: '⬛',
             WALL: '🧱',
             DOOR: '🚪',
-            STAIRS_DOWN: '🕳️',
+            STAIRS_DOWN: '⬇️',
             STAIRS_UP: '🪜',
             UNEXPLORED: '⬜',
             GOLD: '💰',
@@ -503,7 +503,8 @@
                 const ey = room.y + 1 + Math.floor(Math.random() * (room.h - 2));
 
                 if (game.map[ey][ex] === TILES.FLOOR &&
-                    !(ex === game.player.x && ey === game.player.y)) {
+                    !(ex === game.player.x && ey === game.player.y) &&
+                    !(ex === lastRoom.cx && ey === lastRoom.cy)) {
                     const type = enemyPool[Math.floor(Math.random() * enemyPool.length)];
                     game.enemies.push({
                         ...ENEMY_TYPES[type],
@@ -535,7 +536,10 @@
                 const ix = room.x + 1 + Math.floor(Math.random() * (room.w - 2));
                 const iy = room.y + 1 + Math.floor(Math.random() * (room.h - 2));
 
-                if (game.map[iy][ix] === TILES.FLOOR) {
+                // Only spawn on floor tiles (not stairs)
+                if (game.map[iy][ix] === TILES.FLOOR &&
+                    !(ix === lastRoom.cx && iy === lastRoom.cy) &&
+                    !(ix === firstRoom.cx && iy === firstRoom.cy)) {
                     const typeKey = itemPool[Math.floor(Math.random() * itemPool.length)];
                     game.items.push({
                         ...ITEM_TYPES[typeKey],
