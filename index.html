@@ -119,11 +119,69 @@
             background: linear-gradient(90deg, #ff6b6b, #ee5a5a);
             transition: width 0.3s;
         }
+        .equip-section {
+            margin-bottom: 12px;
+        }
+        .equip-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .equip-slots {
+            display: flex;
+            gap: 8px;
+        }
+        .equip-slot {
+            flex: 1;
+            padding: 8px;
+            background: #1a1a2e;
+            border: 2px dashed #3a3a5a;
+            border-radius: 6px;
+            text-align: center;
+            min-height: 50px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .equip-slot:hover {
+            background: #2a2a4e;
+        }
+        .equip-slot.filled {
+            border: 2px solid #4ecdc4;
+            background: #1a2a2e;
+        }
+        .equip-slot .slot-icon {
+            font-size: 20px;
+            opacity: 0.4;
+        }
+        .equip-slot.filled .slot-icon {
+            opacity: 1;
+        }
+        .equip-slot .slot-name {
+            font-size: 10px;
+            color: #666;
+            margin-top: 2px;
+        }
+        .equip-slot.filled .slot-name {
+            color: #4ecdc4;
+        }
+        .backpack-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
         #inventory-list {
             display: flex;
             flex-direction: column;
             gap: 5px;
-            max-height: 200px;
+            max-height: 140px;
             overflow-y: auto;
         }
         .inv-item {
@@ -139,14 +197,17 @@
         .inv-item:hover {
             background: #2a2a4e;
         }
-        .inv-item.equipped {
-            border: 1px solid #4ecdc4;
-        }
         .inv-key {
             background: #4a4a6a;
             padding: 2px 6px;
             border-radius: 3px;
             font-size: 12px;
+        }
+        .inv-empty {
+            color: #555;
+            font-size: 12px;
+            text-align: center;
+            padding: 10px;
         }
         #controls {
             font-size: 13px;
@@ -284,6 +345,20 @@
             </div>
             <div class="panel-section">
                 <div class="panel-title">🎒 Inventory</div>
+                <div class="equip-section">
+                    <div class="equip-label">Equipped</div>
+                    <div class="equip-slots">
+                        <div class="equip-slot" id="weapon-slot" onclick="unequipWeapon()">
+                            <span class="slot-icon">⚔️</span>
+                            <span class="slot-name">Weapon</span>
+                        </div>
+                        <div class="equip-slot" id="armor-slot" onclick="unequipArmor()">
+                            <span class="slot-icon">🛡️</span>
+                            <span class="slot-name">Armor</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="backpack-label">Backpack</div>
                 <div id="inventory-list"></div>
             </div>
             <div class="panel-section">
@@ -729,19 +804,68 @@
             const hpPercent = (game.player.hp / game.player.maxHp) * 100;
             document.getElementById('hp-bar').style.width = hpPercent + '%';
 
-            // Update inventory
+            // Update equipment slots
+            const weaponSlot = document.getElementById('weapon-slot');
+            const armorSlot = document.getElementById('armor-slot');
+
+            if (game.player.weapon) {
+                weaponSlot.classList.add('filled');
+                weaponSlot.querySelector('.slot-icon').textContent = game.player.weapon.emoji;
+                weaponSlot.querySelector('.slot-name').textContent = game.player.weapon.name;
+            } else {
+                weaponSlot.classList.remove('filled');
+                weaponSlot.querySelector('.slot-icon').textContent = '⚔️';
+                weaponSlot.querySelector('.slot-name').textContent = 'Weapon';
+            }
+
+            if (game.player.armor) {
+                armorSlot.classList.add('filled');
+                armorSlot.querySelector('.slot-icon').textContent = game.player.armor.emoji;
+                armorSlot.querySelector('.slot-name').textContent = game.player.armor.name;
+            } else {
+                armorSlot.classList.remove('filled');
+                armorSlot.querySelector('.slot-icon').textContent = '🛡️';
+                armorSlot.querySelector('.slot-name').textContent = 'Armor';
+            }
+
+            // Update inventory (backpack - exclude equipped items)
             const invList = document.getElementById('inventory-list');
             invList.innerHTML = '';
-            game.player.inventory.forEach((item, index) => {
-                const div = document.createElement('div');
-                div.className = 'inv-item';
-                if (item === game.player.weapon || item === game.player.armor) {
-                    div.classList.add('equipped');
-                }
-                div.innerHTML = `<span class="inv-key">${index + 1}</span> ${item.emoji} ${item.name}`;
-                div.onclick = () => useItem(index);
-                invList.appendChild(div);
-            });
+
+            const backpackItems = game.player.inventory.filter(
+                item => item !== game.player.weapon && item !== game.player.armor
+            );
+
+            if (backpackItems.length === 0) {
+                invList.innerHTML = '<div class="inv-empty">Empty</div>';
+            } else {
+                game.player.inventory.forEach((item, index) => {
+                    // Skip equipped items in backpack display
+                    if (item === game.player.weapon || item === game.player.armor) return;
+
+                    const div = document.createElement('div');
+                    div.className = 'inv-item';
+                    div.innerHTML = `<span class="inv-key">${index + 1}</span> ${item.emoji} ${item.name}`;
+                    div.onclick = () => useItem(index);
+                    invList.appendChild(div);
+                });
+            }
+        }
+
+        function unequipWeapon() {
+            if (game.player.weapon) {
+                addMessage(`Unequipped ${game.player.weapon.name}.`, 'item');
+                game.player.weapon = null;
+                render();
+            }
+        }
+
+        function unequipArmor() {
+            if (game.player.armor) {
+                addMessage(`Unequipped ${game.player.armor.name}.`, 'item');
+                game.player.armor = null;
+                render();
+            }
         }
 
         function addMessage(text, type = 'info') {
